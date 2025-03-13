@@ -1,9 +1,9 @@
-name: Laravel CI with SonarCloud
+name: Laravel CI
 
 on:
   push:
     branches:
-      - '**'  # Runs on all branches (main, develop, feature/*, etc.)
+      - '**'  # Runs on all branches
   pull_request:
     branches:
       - '**'  # Runs on all PRs
@@ -16,7 +16,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: student-crud  # Updated database name
+          MYSQL_DATABASE: studentcrud  # ✅ Updated database name
           MYSQL_USER: test_user
           MYSQL_PASSWORD: test_pass
         ports:
@@ -52,7 +52,7 @@ jobs:
           echo "DB_CONNECTION=mysql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=student-crud" >> .env
+          echo "DB_DATABASE=studentcrud" >> .env
           echo "DB_USERNAME=test_user" >> .env
           echo "DB_PASSWORD=test_pass" >> .env
           php artisan config:clear
@@ -65,7 +65,8 @@ jobs:
           mkdir -p studentcrud/coverage-report
           vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
 
-      - name: Upload Code Coverage Report
+      # OPTIONAL: Upload the coverage report to GitHub Actions (for download)
+      - name: Upload Coverage Report
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report
