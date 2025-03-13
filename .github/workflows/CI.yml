@@ -16,7 +16,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: studentcrud  # ✅ Updated database name
+          MYSQL_DATABASE: studentcrud
           MYSQL_USER: test_user
           MYSQL_PASSWORD: test_pass
         ports:
@@ -58,8 +58,8 @@ jobs:
           vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2  # ✅ Downgraded to v2
         with:
           name: coverage-report
           path: studentcrud/coverage-report/
-          retention-days: 5  # Keeps the file for 5 days
+          retention-days: 5
