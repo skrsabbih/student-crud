@@ -11,20 +11,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: studentcrud
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_pass
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -34,23 +23,8 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           coverage: xdebug
 
-      - name: Install Composer Dependencies
-        run: composer install --no-progress --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Setup Environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          echo "DB_CONNECTION=mysql" >> .env
-          echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=studentcrud" >> .env
-          echo "DB_USERNAME=test_user" >> .env
-          echo "DB_PASSWORD=test_pass" >> .env
-          php artisan config:clear
-
-      - name: Run Migrations
-        run: php artisan migrate --force
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist
 
       - name: Run PHPUnit Tests with Coverage
         run: |
@@ -58,8 +32,7 @@ jobs:
           vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2  # Changed to v2
         with:
           name: coverage-report
           path: studentcrud/coverage-report
-          retention-days: 5
