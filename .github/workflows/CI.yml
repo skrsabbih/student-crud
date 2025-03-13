@@ -56,3 +56,10 @@ jobs:
         run: |
           mkdir -p studentcrud/coverage-report
           vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: studentcrud/coverage-report/
+          retention-days: 5  # Keeps the file for 5 days
