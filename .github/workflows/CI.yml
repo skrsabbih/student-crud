@@ -58,7 +58,7 @@ jobs:
           vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v2  # ✅ Downgraded to v2
+        uses: actions/upload-artifact@v3
         with:
           name: coverage-report
           path: studentcrud/coverage-report/
