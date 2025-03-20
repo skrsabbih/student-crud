@@ -1,46 +1,64 @@
 name: SonarCloud Scan
-
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     branches:
-      - main
+      - '**'
 
 jobs:
-  sonarcloud:
-    name: SonarCloud Scan
+  test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: studentcrud
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_pass
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: 8.2
+          extensions: mbstring, pdo, pdo_mysql
+          coverage: xdebug
 
-      - name: Install Dependencies
-        run: composer install --no-progress --no-suggest --prefer-dist
+      - name: Install Composer Dependencies
+        run: composer install --no-progress --prefer-dist
 
-      - name: Run PHPUnit tests with coverage
+      - name: Setup Environment
         run: |
-          mkdir -p tests/reports
-          vendor/bin/phpunit --coverage-clover tests/reports/coverage.xml
+          cp .env.example .env
+          php artisan key:generate
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=studentcrud" >> .env
+          echo "DB_USERNAME=test_user" >> .env
+          echo "DB_PASSWORD=test_pass" >> .env
+          php artisan config:clear
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Run Migrations
+        run: php artisan migrate --force
+
+      - name: Run PHPUnit Tests with Coverage
+        run: |
+          mkdir -p studentcrud/coverage-report
+          vendor/bin/phpunit --coverage-html=studentcrud/coverage-report
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4  # ✅ Upgraded to v4 (Latest version)
         with:
-          args: >
-            -Dsonar.organization=${{ secrets.SONAR_ORG }}
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.php.coverage.reportPaths=tests/reports/coverage.xml
-            -Dsonar.sources=app
-            -Dsonar.exclusions=**/vendor/**,**/node_modules/**,**/tests/**,**/public/**
-            -Dsonar.tests=tests
-            -Dsonar.test.inclusions=tests/**/*.php
+          name: coverage-report
+          path: studentcrud/coverage-report/
+          retention-days: 5
