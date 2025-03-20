@@ -1,92 +1,40 @@
-name: Laravel CI with SonarCloud
+name: SonarCloud Scan
 
 on:
   push:
     branches:
-      - '**'
+      - main
   pull_request:
     branches:
-      - '**'
+      - main
 
 jobs:
-  test:
+  sonarcloud:
+    name: SonarCloud Scan
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ecommerce
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_pass
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
-          extensions: mbstring, pdo, pdo_mysql
-          coverage: xdebug
+          php-version: '8.2'
 
       - name: Install Dependencies
-        run: |
-          composer install --no-progress --no-interaction --prefer-dist
-          composer dump-autoload
+        run: composer install --no-progress --no-suggest --prefer-dist
 
-      - name: Verify Autoload
-        run: |
-          ls -la vendor
-          php -r "require 'vendor/autoload.php'; echo 'Autoload working!';"
-
-      - name: Setup Environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          echo "DB_CONNECTION=mysql" >> .env
-          echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=ecommerce" >> .env
-          echo "DB_USERNAME=test_user" >> .env
-          echo "DB_PASSWORD=test_pass" >> .env
-
-      - name: Run Migrations & Seeders
-        run: |
-          php artisan migrate --force
-          php artisan db:seed --force
-
-      - name: Run Tests with Coverage
+      - name: Run PHPUnit tests with coverage
         run: |
           mkdir -p tests/reports
-          vendor/bin/phpunit --coverage-clover=tests/reports/coverage.xml
+          vendor/bin/phpunit --coverage-clover tests/reports/coverage.xml
 
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: tests/reports/coverage.xml
-          retention-days: 5
-
-  sonarcloud:
-    name: SonarCloud Analysis
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: SonarCloud Scan
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: .
           args: >
             -Dsonar.organization=${{ secrets.SONAR_ORG }}
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
@@ -96,15 +44,3 @@ jobs:
             -Dsonar.exclusions=**/vendor/**,**/node_modules/**,**/tests/**,**/public/**
             -Dsonar.tests=tests
             -Dsonar.test.inclusions=tests/**/*.php
-
-  post-analysis:
-    name: Post Analysis Cleanup
-    runs-on: ubuntu-latest
-    needs: sonarcloud
-
-    steps:
-      - name: Cleanup Temporary Files
-        run: |
-          echo "Cleaning up temporary files"
-          rm -f tests/reports/coverage.xml
-          rm -rf /tmp/*
